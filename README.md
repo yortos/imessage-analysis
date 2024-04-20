@@ -4,14 +4,11 @@
 Welcome to his repo. Over the past years I've been writing and editing the code to access, extract and transform the data in your Mac's iMessage database in order to create a dataframe that you can use to perform all sorts of fun data analysis.
 
 ## Version
-3
-
-## Reading
-You can read the first blog post I wrote that explains that fundamentals of the code [here](https://medium.com/@yaskalidis/heres-how-you-can-access-your-entire-imessage-history-on-your-mac-f8878276c6e9). Even though the code itself has since been updated, the base code and process is the same.
-
-You can also read about some fun analysis you can do once you have the clean dataframe [here](https://medium.com/@yaskalidis/fun-things-you-can-learn-about-yourself-and-from-your-messages-5101631a8e20)
+3.1
 
 ## Getting Started
+You need a Mac for this process.
+
 You need familiarity with Python and [jupyter notebooks](https://jupyter.org/try-jupyter/notebooks/?path=notebooks/Intro.ipynb) to use this code.
 In the future I might package the whole ETL notebook into a script you can run, but that's not a big priority right now.
 
@@ -20,6 +17,12 @@ In the future I might package the whole ETL notebook into a script you can run, 
 3. Open jupyter notebook, load and run the notebooks.
 
 The repo has two notebooks. One is the ETL notebook that you need to run once in order to extract, transform and save a clean, data-analysis-friendly dataframe. The other is a notebook with some analysis ideas and code. 
+
+## Reading
+You can read the first blog post I wrote that explains that fundamentals of the code [here](https://medium.com/@yaskalidis/heres-how-you-can-access-your-entire-imessage-history-on-your-mac-f8878276c6e9). Even though the code itself has since been updated, the base code and process is the same.
+
+You can also read about some fun analysis you can do once you have the clean dataframe [here](https://medium.com/@yaskalidis/fun-things-you-can-learn-about-yourself-and-from-your-messages-5101631a8e20)
+
 
 ## How Apple stores your messages database
 The main data entities we're working with here is the messages, the chats and the contact information.
@@ -58,14 +61,21 @@ I solve for this in this new version of the code by discovering and extracting t
 * Note that some of the messages in the final dataframe will be things other than messages sent between people. This includes automated messages you might receive from services (like 2-fac authentication codes, restaurant reservation confirmation messages etc) as well as even more exotic thigns such as notifications that someone has started or stopped sharing their location with you or Apple Watch competitions. 
 
 ## Updates from Previous Version
-* Messages now contain text. This can enable you do to sentiment or other text analysis.
+
+Updates in 3.1
+* I included a column that detects whether the "message" was a [reaction](https://support.apple.com/guide/messages/use-tapbacks-icht504f698a/mac) and, if so, what type of a reaction.
+This works for reactions sent from English language iPhones, and doesn't work for Greek (yet). This detection relies on the text of the message.
+
+Updates in 3
+* Many more messages now contain text. This can enable you do to sentiment or other text analysis. My best impression is that Apple changed the way that it stores the message text in the database at some point, and moved towards runtime encoding. After lots of trial and error, I was able to extract a pretty good approximation of the English text from another column in the table. The big limitation right now is that this works only for English characters. I tried it with Greek and wasn't successful. 
 * The sent messages now have their recipient in the data. If you sent the message in a group chat, it is simply denoted as 'group-chat' (for now, see below for future work)
 
 
 ## Future Work
 * When the message is sent in a group chat, right now I simply have the recipient as 'group-chat'. I want to edit that and perhaps include the list of recipients. This way if you want to calculcate the numebr of messages between you and another person in both private chats as well as group chats you will be able to do so. 
 * Right now, Step 3 of the ETL notebook is very slow because the code is not optimized. I want to make that more efficient.
-* The messages in the final dataframe will include things like reactions and thread replies. For reactions, I have a sense of how I can detect them. I might include an indicator whether the message is a reaction, a thread reply or even things like photos in future editions.
+* The messages in the final dataframe will include things like reactions and thread replies. For reactions, I have a sense of how I can detect them. I might include an indicator whether the message is a reaction, a thread reply or even things like photos in future editions. 
+    *  **Update in 3.1**: Reactions are now detected and included in the ETL notebook.
 
 
 <br>

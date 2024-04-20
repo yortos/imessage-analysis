@@ -1,4 +1,34 @@
+def extract_ascii_text(byte_string):
+    extracted_text = ""
+
+    for byte in byte_string:
+        char = chr(byte)
+        if char.isprintable() or char in ['\n', '\t', ' ']:
+            extracted_text += char
+        else:
+            extracted_text += " "
+
+    return extracted_text
+
+def extract_substring(s, x1='NSString', x2='NSDictionary'):
+    # Find the start index of x1 and the end index of x2
+    start_index = s.find(x1)
+    end_index = s.find(x2)
+
+    # Check if both substrings are found
+    if start_index != -1 and end_index != -1:
+        # Adjust indices to include x1 and exclude x2
+        start_index += len(x1)
+        
+        # Extract and return the substring
+        return s[start_index:end_index].strip()
+    else:
+        # Return an empty string or a specific message if not found
+        return "Substrings not found or in incorrect order"
+    
+
 clean_out_words=['+2','iI','+ ', '+\n', '   2', '+!', '+(','+*', '+<',]
+# TO DO: add more clean up words, and detect them at the beginning of the string.
 def clean_text(byte_string):
     '''
     Given the byte_string in the 'attributedBody' column, this code tries to extract the text in the message.
@@ -90,6 +120,23 @@ def get_rolling_avg(daily_count, column_name='received_messages', window_size=7)
     daily_count_df['running_avg'] = daily_count_df[column_name].rolling(window=window_size).mean()
     return daily_count_df
 
+import re
+
+def detect_reaction(text):
+    ''' Take a string and detects whether the iMessage reaction keywords appear at the start of the text'''
+    if type(text)!= str or text is None:
+        return 0
+    keywords = ['Loved', 'Emphasized', 'Liked', 'Disliked', 'Laughed at']
+    for keyword in keywords:
+        if re.search(r'\b{}\b'.format(re.escape(keyword)), text[:14]):
+            # I'm using 14 because of the length of the Emphasized word plus a couple extra for any trailing characters from the inferred_text column.
+            return keyword
+    return 0
+
+
+####################################################################################
+####################################################################################
+
 
 # Other functions that are not currently being used.
 def get_handles_in_the_chat(message_id, chat_message_joins, chat_handle_join ):
@@ -123,34 +170,8 @@ def get_chat_type(message_id, chat_message_joins, chat_handle_join):
             return 'one-on-one'
 
 
-def extract_ascii_text(byte_string):
-    extracted_text = ""
 
-    for byte in byte_string:
-        char = chr(byte)
-        if char.isprintable() or char in ['\n', '\t', ' ']:
-            extracted_text += char
-        else:
-            extracted_text += " "
 
-    return extracted_text
-
-def extract_substring(s, x1='NSString', x2='NSDictionary'):
-    # Find the start index of x1 and the end index of x2
-    start_index = s.find(x1)
-    end_index = s.find(x2)
-
-    # Check if both substrings are found
-    if start_index != -1 and end_index != -1:
-        # Adjust indices to include x1 and exclude x2
-        start_index += len(x1)
-        
-        # Extract and return the substring
-        return s[start_index:end_index].strip()
-    else:
-        # Return an empty string or a specific message if not found
-        return "Substrings not found or in incorrect order"
-    
 def get_contact_info_in_the_chat(message_id, chat_message_joins,chat_handle_join, handles):
     '''
     Given a message_id, uses the convert_handle_id_to_contact_info to convert the handle_ids into contact_info list
