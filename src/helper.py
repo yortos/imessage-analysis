@@ -110,15 +110,25 @@ def get_chat_size(handles_list):
     else:
         return len(handles_list)
     
+import pandas as pd
 
 def get_rolling_avg(daily_count, column_name='received_messages', window_size=7):
     ''' Take a df as an input and returs the rolling average of the column name'''
     daily_count_df = daily_count.reset_index(name=column_name)
     daily_count_df = daily_count_df.sort_values('date')
-    daily_count_df.set_index('date', inplace=True)
+    
+    # the following code is to fill with 0 days that there were no messages
+    start_date = daily_count_df['date'].min()
+    end_date = daily_count_df['date'].max()
+    all_dates = pd.date_range(start=start_date, end=end_date, freq='D')
+    all_dates_df = pd.DataFrame({'date': all_dates.date})
 
-    daily_count_df['running_avg'] = daily_count_df[column_name].rolling(window=window_size).mean()
-    return daily_count_df
+    merged_df = all_dates_df.merge(daily_count_df, on='date', how='left')
+    merged_df[column_name] = merged_df[column_name].fillna(0)
+
+    merged_df.set_index('date', inplace=True)
+    merged_df['running_avg'] = merged_df[column_name].rolling(window=window_size).mean()
+    return merged_df
 
 import re
 
