@@ -1,10 +1,42 @@
 # Extract your Mac iMessage database for easy data analysis
 
 ## Purpose
-Welcome to his repo. Over the past years I've been writing and editing the code to access, extract and transform the data in your Mac's iMessage database in order to create a dataframe that you can use to perform all sorts of fun data analysis.
+Welcome. Over the past years I've been writing and editing the code to access, extract and transform the data in your Mac's iMessage database in order to create a dataframe that you can use to perform all sorts of fun data analysis.
 
 ## Version
-3.1
+3.2
+
+## DataFrame Columns and Descriptions
+Starting from the end, here's the dataframe that this code produces with your messages.
+
+
+| Column Name               | Type         | Description                                            |
+|---------------------------|--------------|--------------------------------------------------------|
+| `message_id`              | integer  |   Unique ID for this message       |
+| `is_from_me`              | integer  | Take values of 0 or 1. Indicates whether the message was sent from you (1) or not (0).       |
+| `text_combined`           | string  | The most complete data I could find for the text of the message. If `text` (see below) is NULL then this takes the value of `inferred_text`, otherwise `text`. This is because `text` is the field from Apple but it can be NULL often, in which case I resort to hacky methods to infer the text. |
+| `text`                    | string  | The text of the message, native from Apple.            |
+| `inferred_text`           | string  | If the `text` value above is NULL, I try and infer the text from the field called `attributedBody` which can be found in the messages database. This process is not perfect, and currently works only for English.    |
+| `handle_id`               | integer  | A unique ID for the person that sent the message.     |
+| `contact_info`            | string  | The contact information of the person sending the message. It can be either a phone number of an email|
+| `chat_id`                 | integer  | A Unique ID representing the chat that the message was sent in.      |
+| `chat_members_contact_info` | string | String representing a list of contact information, e.g. "['+123556632','example@email.com']". You can convert this string to a list of strings by running `ast.literal_eval(x)`|
+| `chat_members_handles`    | string  | Similar to the column above `chat_members_contact_info` this column stores a list with the `handle_id` of every participant in the chat in which this message was sent. You can convert this string into a list of handles by running  `ast.literal_eval(x)`|
+| `chat_size`               | integer  | Number of participants in this chat, NOT counting yourself.   |
+| `is_audio_message`        | integer  | 1 indicates that the message is an audio message, 0 not. |
+| `message_effect_type`          | string  | The effect that the message was sent with, or 'no-effect' if there is none. Possible values: `impact`, `gentle`, `Echo`, `HappyBirthday`, `loud`, `Fireworks`, `Lasers`, `invisibleink`, `Confetti`, `Heart`, `Spotlight`, `Sparkles`, `ShootingStar` |
+| `message_reaction_type`                | string  |  The type of reaction that this message is, or 'no-reaction' if it is not a reaction. Possible values: `Disliked`, `Emphasized`, `Laughed`, `Liked`, `Loved`, `Questioned`, `Removed dislike`, `Removed emphasis`, `Removed heart`, `Removed laugh`, `Removed like`, `Removed question mark`       |
+| `is_thread_reply`         | integer  | Indicates whether this message was a reply to a specific message (i.e,, a thread) or not. 1 if it is a thread reply, 0 if it is not.  |
+| `link_domain`             | string  | The domain of the link, if the message is a link. Otherwise 'no-link' |
+| `updated_contact_info`    | Placeholder  | Placeholder description for `updated_contact_info` column. |
+| `name`                    | string  | The human-readable name of the sender of the message. This is equivalent to saving a contact for a number and displayin the name instead of the contact information.        |
+| `timestamp`               | string  | The timestamp when the message was sent. When storing the dataframe in CSV and loading again the type resets to string. Convert to timestamp with `pd.Timestamp(x)`. Example value: '2024-04-26 14:35:03'|
+| `date`                    | string  | Similar to the `timestamp` above but just the date. Convert to datetime by `df_messages['timestamp'].apply(lambda x: x.date())`. Example value:   `'2024-04-26'`         |
+| `month`                   | integer  | The month, as extracted from the `date` field. Values go from 1 (January) to 12 (December)          |
+| `year`                    | integer  | The year, as extracted from the `date` field.            |
+
+
+
 
 ## Getting Started
 You need a Mac for this process.
@@ -60,7 +92,13 @@ I solve for this in this new version of the code by discovering and extracting t
 
 * Note that some of the messages in the final dataframe will be things other than messages sent between people. This includes automated messages you might receive from services (like 2-fac authentication codes, restaurant reservation confirmation messages etc) as well as even more exotic thigns such as notifications that someone has started or stopped sharing their location with you or Apple Watch competitions. 
 
-## Updates from Previous Version
+## New in this Version
+Updates in 3.2
+
+* Added new fields indicating whether the message is an audio_message, or a thread reply.
+* Added a new field with the effect that the message was sent with (e.g., fireworks, baloons etc)
+* Updated the way that I detect whether the "message" was a reaction, which now covers is more accurate and expansive. It now includes even when a reaction is removed.
+
 
 Updates in 3.1
 * I included a column that detects whether the "message" was a [reaction](https://support.apple.com/guide/messages/use-tapbacks-icht504f698a/mac) and, if so, what type of a reaction.
@@ -74,8 +112,6 @@ Updates in 3
 ## Future Work
 * When the message is sent in a group chat, right now I simply have the recipient as 'group-chat'. I want to edit that and perhaps include the list of recipients. This way if you want to calculcate the numebr of messages between you and another person in both private chats as well as group chats you will be able to do so. 
 * Right now, Step 3 of the ETL notebook is very slow because the code is not optimized. I want to make that more efficient.
-* The messages in the final dataframe will include things like reactions and thread replies. For reactions, I have a sense of how I can detect them. I might include an indicator whether the message is a reaction, a thread reply or even things like photos in future editions. 
-    *  **Update in 3.1**: Reactions are now detected and included in the ETL notebook.
 
 
 <br>

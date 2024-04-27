@@ -130,10 +130,67 @@ def get_rolling_avg(daily_count, column_name='received_messages', window_size=7)
     merged_df['running_avg'] = merged_df[column_name].rolling(window=window_size).mean()
     return merged_df
 
-import re
 
-def detect_reaction(text):
+reaction_dict = { 2000 : 'Loved',
+                  2001 : 'Liked',
+                  2002 : 'Disliked',
+                  2003 : 'Laughed',
+                  2004 : 'Emphasized',
+                  2005 : 'Questioned',
+                  3000 : 'Removed heart',
+                  3001 : 'Removed like',
+                  3002 : 'Removed dislike',
+                  3003 : 'Removed laugh',
+                  3004 : 'Removed emphasis',
+                  3005 : 'Removed question mark',}
+
+def detect_reaction(associated_message_type):
+    ''' Detect and translate whether the iMessage was a reaction'''
+    if associated_message_type in reaction_dict.keys():
+        return reaction_dict[associated_message_type]
+    else:
+        return 'no-reaction'
+
+def detect_message_effect(x):
+    ''' Takes the expressive style text as an input and returns the effect that was used, if any
+    '''
+    if x is None:
+        return 'no-effect'
+    else:
+        return x.split('.')[-1].replace('CK',"").replace('Effect','')
+        
+
+from urllib.parse import urlparse
+
+def apply_function(row):
+    '''
+    Helper function for extract_domain. I need to extract the domain only when it is indicated that the text of the message is a URL. 
+    Return None otherwise.
+    '''
+    if pd.isnull(row['balloon_bundle_id']):
+        return None
+    else:
+        return extract_domain(row['text_combined'])
+def extract_domain(url):
+    '''Takes a string as an input and returns the domain of the URL that the string represents'''
+    if url is None or ('http' not in url and 'www' not in url):
+        return 'no-link'
+    else:
+        http_index=url.find('http')
+        url = url[http_index:]
+        parsed_url = urlparse(url)
+        domain = parsed_url.netloc.split('.')[-2] + '.' + parsed_url.netloc.split('.')[-1]
+        return domain
+
+####################################################################################
+####################################################################################
+
+
+# Other functions that are not currently being used.
+import re
+def detect_reaction_archived(text):
     ''' Take a string and detects whether the iMessage reaction keywords appear at the start of the text'''
+    ''' This method was relying on language processing to detect reactions, the new way relies on logs directly from Apple which are more holistic and reliable.'''
     if type(text)!= str or text is None:
         return 0
     keywords = ['Loved', 'Emphasized', 'Liked', 'Disliked', 'Laughed at']
@@ -144,11 +201,7 @@ def detect_reaction(text):
     return 0
 
 
-####################################################################################
-####################################################################################
 
-
-# Other functions that are not currently being used.
 def get_handles_in_the_chat(message_id, chat_message_joins, chat_handle_join ):
     '''
     Given a message_id this will give you a list of all the handle_id that are in
