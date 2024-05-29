@@ -63,7 +63,7 @@ def update_contact_info(contact_info, contact_info_list, message_id):
     '''
     This is needed because many sent messages don't have the contact that the messages was sent to.
     If the chat is a 1-1 chat then the message was sent to the only other participant in the chat.
-    If the caht is a group-chat, I currently just assign it a 'group-chat' contact info, since there is no signle recipient of the message. 
+    If the chat is a group-chat, I currently just assign it a 'group-chat' contact info, since there is no signle recipient of the message. 
     '''
     if contact_info_list is None:
         return 'contact list is none'
