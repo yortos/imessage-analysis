@@ -3,8 +3,8 @@
 ## Purpose
 Welcome. Over the past years I've been writing and editing the code to access, extract and transform the data in your Mac's iMessage database in order to create a dataframe that you can use to perform all sorts of fun data analysis.
 
-## Version
-3.2
+## Current Version
+3.3
 
 ## DataFrame Columns and Descriptions
 Starting from the end, here's the dataframe that this code produces with your messages.
@@ -20,7 +20,6 @@ Starting from the end, here's the dataframe that this code produces with your me
 | `handle_id`               | integer  | A unique ID for the person that sent the message.     |
 | `contact_info`            | string  | The contact information of the person sending the message. It can be either a phone number of an email|
 | `updated_contact_info`    | Placeholder  | For 1-1 chats, this field is always the other person in the chat. For group chats, `contact_info` is the sender and this simply says `group-chat`.  |
-
 | `chat_id`                 | integer  | A Unique ID representing the chat that the message was sent in.      |
 | `chat_members_contact_info` | string | String representing a list of contact information, e.g. "['+123556632','example@email.com']". You can convert this string to a list of strings by running `ast.literal_eval(x)`|
 | `chat_members_handles`    | string  | Similar to the column above `chat_members_contact_info` this column stores a list with the `handle_id` of every participant in the chat in which this message was sent. You can convert this string into a list of handles by running  `ast.literal_eval(x)`|
