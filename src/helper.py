@@ -33,7 +33,7 @@ def clean_text(byte_string):
     '''
     Given the byte_string in the 'attributedBody' column, this code tries to extract the text in the message.
     '''
-    if byte_string is None:
+    if pd.isnull(byte_string):
         return None
     s = extract_substring(extract_ascii_text(byte_string))
     for word in clean_out_words:
@@ -68,13 +68,13 @@ def update_contact_info(contact_info, contact_info_list, message_id):
     if contact_info_list is None:
         return 'contact list is none'
     if len(contact_info_list)==1:
-        if contact_info is None:
+        if pd.isnull(contact_info):
             return contact_info_list[0]
-        else: 
+        else:
             # contact info is not None
             if contact_info!=contact_info_list[0]:
                 # while this could happen with handles, this should not happen with contact info because two different handles for the same contact info have the same ... contact info.
-                print(contact_info, contact_info[0], message_id)
+                print(contact_info, contact_info_list[0], message_id)
             else:
                 #if the handle_id is not zero, it should match the handle_id in the chat and in that case we just keep it as is.
                 return contact_info
@@ -116,7 +116,14 @@ def get_rolling_avg(daily_count, column_name='received_messages', window_size=7)
     ''' Take a df as an input and returs the rolling average of the column name'''
     daily_count_df = daily_count.reset_index(name=column_name)
     daily_count_df = daily_count_df.sort_values('date')
-    
+
+    if daily_count_df.empty:
+        # nothing matched (e.g. a contact filter with no messages) - nothing to average,
+        # so return an empty frame with the expected shape instead of crashing below on
+        # date_range(start=NaT, ...).
+        return pd.DataFrame(columns=[column_name, 'running_avg']).set_index(
+            pd.Index([], name='date'))
+
     # the following code is to fill with 0 days that there were no messages
     start_date = daily_count_df['date'].min()
     end_date = daily_count_df['date'].max()
@@ -154,7 +161,7 @@ def detect_reaction(associated_message_type):
 def detect_message_effect(x):
     ''' Takes the expressive style text as an input and returns the effect that was used, if any
     '''
-    if x is None:
+    if pd.isnull(x):
         return 'no-effect'
     else:
         return x.split('.')[-1].replace('CK',"").replace('Effect','')
@@ -173,13 +180,20 @@ def apply_function(row):
         return extract_domain(row['text_combined'])
 def extract_domain(url):
     '''Takes a string as an input and returns the domain of the URL that the string represents'''
-    if url is None or ('http' not in url and 'www' not in url):
+    if pd.isnull(url) or ('http' not in url and 'www' not in url):
         return 'no-link'
     else:
-        http_index=url.find('http')
+        http_index = url.find('http')
+        if http_index == -1:
+            # 'www' is present but there's no 'http(s)://' prefix to anchor on.
+            http_index = url.find('www')
         url = url[http_index:]
         parsed_url = urlparse(url)
-        domain = parsed_url.netloc.split('.')[-2] + '.' + parsed_url.netloc.split('.')[-1]
+        # e.g. a bare host with no dot ('http://localhost') - not a real domain we can split.
+        netloc_parts = parsed_url.netloc.split('.')
+        if len(netloc_parts) < 2:
+            return 'no-link'
+        domain = netloc_parts[-2] + '.' + netloc_parts[-1]
         return domain
 
 ####################################################################################

@@ -1,0 +1,9 @@
+# Generated outputs - these contain your personal iMessage data / analysis artifacts
+# and shouldn't be committed.
+data/*.csv
+plots/*.png
+
+# Jupyter / Python
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
