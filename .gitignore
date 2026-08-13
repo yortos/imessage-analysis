@@ -3,6 +3,9 @@
 data/*.csv
 plots/*.png
 
+# Personal deep-dive notebooks - never committed
+notebooks/personal/
+
 # Jupyter / Python
 .ipynb_checkpoints/
 __pycache__/
