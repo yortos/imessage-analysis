@@ -144,19 +144,40 @@ reaction_dict = { 2000 : 'Loved',
                   2003 : 'Laughed',
                   2004 : 'Emphasized',
                   2005 : 'Questioned',
+                  2006 : 'Emoji reaction',
+                  2007 : 'Sticker reaction',
                   3000 : 'Removed heart',
                   3001 : 'Removed like',
                   3002 : 'Removed dislike',
                   3003 : 'Removed laugh',
                   3004 : 'Removed emphasis',
-                  3005 : 'Removed question mark',}
+                  3005 : 'Removed question mark',
+                  3006 : 'Removed emoji reaction',
+                  3007 : 'Removed sticker reaction',}
 
-def detect_reaction(associated_message_type):
-    ''' Detect and translate whether the iMessage was a reaction'''
+def detect_reaction(associated_message_type, associated_message_emoji=None):
+    ''' Detect and translate whether the iMessage was a reaction.
+    Since iOS 17 a tapback can be any emoji (associated_message_type 2006); in that case
+    the emoji itself lives in associated_message_emoji, so return it for a more useful label.'''
     if associated_message_type in reaction_dict.keys():
+        if associated_message_type == 2006 and not pd.isnull(associated_message_emoji) and associated_message_emoji != '':
+            return associated_message_emoji
         return reaction_dict[associated_message_type]
     else:
         return 'no-reaction'
+
+item_type_dict = { 0 : 'message',
+                   1 : 'group-member-change',
+                   2 : 'group-name-change',
+                   3 : 'group-photo-change',
+                   4 : 'location-sharing', }
+
+def get_item_type_label(item_type):
+    ''' Translate the item_type column into a readable label.
+    item_type 0 is a normal message; everything else is a system event (member added/removed,
+    group renamed, location sharing started/stopped, ...). These rows have NULL text and
+    should usually be excluded from message counts. Unknown types map to "other-system".'''
+    return item_type_dict.get(item_type, 'other-system')
 
 def detect_message_effect(x):
     ''' Takes the expressive style text as an input and returns the effect that was used, if any
@@ -168,11 +189,56 @@ def detect_message_effect(x):
         
 
 from urllib.parse import urlparse
+import plistlib
+import re as _re
+
+_URL_PATTERN = _re.compile(r"https?://\S+|www\.\S+")
+
+def extract_url_from_payload(payload_data):
+    '''
+    Extract the shared URL from a link-preview message's payload_data blob.
+    On newer macOS/iOS versions (~2024 onwards) the 'text' column is NULL for most
+    link-preview messages, and the URL only lives in payload_data: an NSKeyedArchiver
+    binary plist whose $objects array contains the URL string(s).
+    Returns the first http(s) string found, or None.
+    '''
+    if payload_data is None:
+        return None
+    try:
+        pl = plistlib.loads(payload_data)
+        for obj in pl.get('$objects', []):
+            if isinstance(obj, str) and obj.startswith('http'):
+                return obj
+    except Exception:
+        return None
+    return None
+
+def get_link_domain(row):
+    '''
+    Return the domain of the link a message contains, or None if the message has no link.
+    Looks in two places:
+      1. payload_data for link-preview (URL balloon) messages - required on newer
+         macOS/iOS where the text column is NULL for link previews.
+      2. the message text itself, which also catches plain-text links sent without a preview.
+    '''
+    url = None
+    if row.get('balloon_bundle_id') == 'com.apple.messages.URLBalloonProvider':
+        url = extract_url_from_payload(row.get('payload_data'))
+    if url is None:
+        text = row.get('text_combined')
+        if not pd.isnull(text):
+            match = _URL_PATTERN.search(text)
+            if match:
+                url = match.group(0)
+    if url is None:
+        return None
+    return extract_domain(url)
 
 def apply_function(row):
     '''
-    Helper function for extract_domain. I need to extract the domain only when it is indicated that the text of the message is a URL. 
-    Return None otherwise.
+    DEPRECATED: kept for backwards compatibility, use get_link_domain instead.
+    On newer macOS/iOS versions the text column is NULL for link previews, so this
+    returns 'no-link' for most recent link messages.
     '''
     if pd.isnull(row['balloon_bundle_id']):
         return None
