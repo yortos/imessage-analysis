@@ -6,6 +6,9 @@ plots/*.png
 # Personal deep-dive notebooks - never committed
 notebooks/personal/
 
+# Claude Code local config
+.claude/
+
 # Jupyter / Python
 .ipynb_checkpoints/
 __pycache__/

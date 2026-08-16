@@ -27,19 +27,40 @@ def extract_substring(s, x1='NSString', x2='NSDictionary'):
         return "Substrings not found or in incorrect order"
     
 
-clean_out_words=['+2','iI','+ ', '+\n', '   2', '+!', '+(','+*', '+<',]
-# TO DO: add more clean up words, and detect them at the beginning of the string.
 def clean_text(byte_string):
     '''
-    Given the byte_string in the 'attributedBody' column, this code tries to extract the text in the message.
+    Extract the message text from the 'attributedBody' typedstream blob.
+
+    attributedBody is a NeXTSTEP "typedstream" archive. The message text is the
+    NSString/NSMutableString payload right after the b'NSString' class name:
+    a b'+' type marker, then the string length (one byte if < 128, or 0x81 plus a
+    2-byte little-endian length, or 0x82 plus a 4-byte little-endian length),
+    then exactly that many bytes of UTF-8.
+
+    Decoding those bytes as UTF-8 handles any language (Greek, emoji, accents...).
+    The previous implementation decoded byte-by-byte as ASCII, which mangled
+    everything non-ASCII into mojibake and leaked length bytes into the text.
     '''
-    if pd.isnull(byte_string):
+    if not isinstance(byte_string, (bytes, bytearray)):
+        return None  # covers None / NaN
+    idx = byte_string.find(b'NSString')
+    if idx == -1:
         return None
-    s = extract_substring(extract_ascii_text(byte_string))
-    for word in clean_out_words:
-        s = s.replace(word,'')
-        
-    return s
+    rest = byte_string[idx + len(b'NSString'):]
+    plus = rest.find(b'+')
+    if plus == -1 or plus > 8:  # the type marker sits within a few bytes of the class name
+        return None
+    rest = rest[plus + 1:]
+    if not rest:
+        return None
+    n = rest[0]
+    if n == 0x81:
+        length, start = int.from_bytes(rest[1:3], 'little'), 3
+    elif n == 0x82:
+        length, start = int.from_bytes(rest[1:5], 'little'), 5
+    else:
+        length, start = n, 1
+    return rest[start:start + length].decode('utf-8', errors='replace')
 
             
 def convert_handle_id_to_contact_info(handle_id, handles):
